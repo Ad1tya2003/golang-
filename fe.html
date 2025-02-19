@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="step1" class="step active">
+        <h2 class="text-white text-xl font-semibold">Choose an Option</h2>
+        <button class="bg-white text-indigo-600 px-4 py-2 rounded-md" onclick="showStep(2, 'signup')">Signup</button>
+        <button class="bg-white text-indigo-600 px-4 py-2 rounded-md" onclick="showStep(2, 'login')">Login</button>
+    </div>
+    
+    <div id="step2" class="step">
+        <h2 id="step2Title" class="text-white text-xl font-semibold"></h2>
+        <form id="authForm" class="flex flex-col gap-2">
+            <input type="text" id="authUsername" class="px-3 py-2 rounded-md" placeholder="Username" required>
+            <input type="password" id="authPassword" class="px-3 py-2 rounded-md" placeholder="Password" required>
+            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded-md">Proceed</button>
+        </form>
+        <button class="text-white underline mt-2" onclick="showStep(1)">Back</button>
+    </div>
+    
+    <div id="step3" class="step">
+        <h2 class="text-white text-xl font-semibold">Request OTP</h2>
+        <button class="bg-yellow-400 text-white px-4 py-2 rounded-md" onclick="requestOTP()">Request OTP</button>
+        <button class="text-white underline mt-2" onclick="showStep(1)">Back</button>
+    </div>
+    
+    <div id="step4" class="step">
+        <h2 class="text-white text-xl font-semibold">Verify OTP</h2>
+        <input type="text" id="otp" class="px-3 py-2 rounded-md" placeholder="Enter OTP" required>
+        <button class="bg-blue-500 text-white px-4 py-2 rounded-md" onclick="verifyOTP()">Verify OTP</button>
+    </div>
+    
+    <div id="step5" class="step">
+        <h2 id="welcomeMessage" class="text-white text-xl font-semibold"></h2>
+        <p class="text-white">Let's play a fun game!</p>
+        <div class="game-container">
+            <script src="https://cdn.htmlgames.com/embed.js?game=SlideWood&amp;bgcolor=white"></script>
+        </div>
+        <button class="bg-red-500 text-white px-4 py-2 rounded-md mt-4" onclick="logout()">Logout</button>
+    </div>
+    
+    <script>
+        let authType = "";
+
+        function showStep(step, type = "") {
+            document.querySelectorAll(".step").forEach(div => div.classList.remove("active"));
+            document.getElementById("step" + step).classList.add("active");
+            if (step === 2) {
+                authType = type;
+                document.getElementById("step2Title").innerText = type === "signup" ? "Signup" : "Login";
+            }
+        }
+
+        document.getElementById("authForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+            const username = document.getElementById("authUsername").value;
+            const password = document.getElementById("authPassword").value;
+            
+            const response = await fetch(`http://localhost:8080/${authType}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const result = await response.json();
+            alert(result.message || result.token);
+            
+            if (authType === "signup") {
+                showStep(2, "login");
+            } else if (authType === "login") {
+                showStep(3);
+            }
+        });
+
+        async function requestOTP() {
+            const username = document.getElementById("authUsername").value;
+            const response = await fetch('http://localhost:8080/request-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+            const result = await response.json();
+            alert(result.message);
+            showStep(4);
+        }
+
+        async function verifyOTP() {
+            const username = document.getElementById("authUsername").value;
+            const otp = document.getElementById("otp").value;
+            const response = await fetch('http://localhost:8080/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, otp })
+            });
+            const result = await response.json();
+            alert(result.message);
+            if (result.message === "OTP verified successfully") {
+                document.getElementById("welcomeMessage").innerText = `Hello, ${username}!`;
+                showStep(5);
+            }
+        }
+
+        function logout() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>
